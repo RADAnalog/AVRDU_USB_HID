@@ -2,7 +2,7 @@ A basic USB HID library for the Microchip AVRxxDU series of microcontrollers.
 
 The prototype was developed on the AVR16DU14 version, using Microchip Studio 7 (see notes below)
 
-The purpose of this library is to facilitate the understanding of the AVRDU series USB peripheral.  To simplify things, the library uses busy-wait loops for the IN and OUT Endpoint TRNCOMPL status check.  This approach blocks the ISR briefly, but there is sufficient tolerance in the USB spec to allow the loop delay.  The result of this approach is the setup and use of the library is very simple.
+The purpose of this library is to facilitate the understanding of the AVRDU series USB peripheral.  To simplify things, the library uses busy-wait loops for the IN and OUT Endpoint TRNCOMPL status check.  The AVRDU has the TCDSBL option in the EP0.CTRL Endpoint configuration register -- it looks to me like the designers were offering up this (busy-wait) approach. Note that this approach blocks the ISR briefly, but there is sufficient tolerance in the USB spec to allow the loop delay.  The result of this approach is that the enumeration is very simple.
 
 In addition, to keep things as simple as possible, I chose to use the built-in HID drivers in Microsoft Windows.  By using the appropriate descriptors in the project, Windows will automaticaly load the driver.  The simple example uses the Vendor-Defined profile.  To check it out, you can use GenericHid.exe from http://janaxelson.com/.
 
