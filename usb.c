@@ -7,6 +7,8 @@
 //	The arrival of a setup packet automatically clears the TRNCOMPL flag.  Interrupt
 //	transfers have to clear the flag manually.
 //
+//	Control packet: 21 0a 0000 0000 0000 = "SET_IDLE" is not implemented.
+//
 //	Pin7 - Configured LED
 //	Pin6 - Suspended LED
 //
@@ -210,12 +212,12 @@ ISR(USB0_TRNCOMPL_vect)
 			// Print what is being sent
 			//printf("EP1.IN=%02x, %02x\n", ep1InPacket[0], ep1InPacket[1]);
 			
-			// Ack IN transfer
-			if (ep1InPacket[0] == 255)
-			{
-				printf("EP1.IN=%i\n", ep1InPacket[0]);
-			}
+			//if (ep1InPacket[0] == 255)
+			//{
+				//printf("EP1.IN=%i\n", ep1InPacket[0]);
+			//}
 			
+			// Ack IN transfer
 			usbAckIn(EP1);
 			
 			return;
@@ -364,10 +366,12 @@ void usbSendDescriptor(const void *descriptor, uint16_t descriptorLength)
 	// Ack Data Stage
 	usbAckIn(EP0);
 	usbWaitInTransactionComplete(EP0);
+	usbClearInTransaction(EP0);
 	
 	// Ack Status Stage
 	usbAckOut(EP0);
 	usbWaitOutTransactionComplete(EP0);
+	usbClearOutTransaction(EP0);
 }
 
 //*****************************************************************************
@@ -384,6 +388,7 @@ void usbSetAddress(void)
 	// Ack Status Stage	
 	usbAckIn(EP0);
 	usbWaitInTransactionComplete(EP0);
+	usbClearInTransaction(EP0);
 
 	// Set the address
 	usbSetDeviceAddress(setupPacket.wValueL);
@@ -403,6 +408,7 @@ void usbSetConfiguration(void)
 	// Ack Status Stage	
 	usbAckIn(EP0);
 	usbWaitInTransactionComplete(EP0);
+	usbClearInTransaction(EP0);
 
 	// Enumeration is complete
 	usbStateConfigured = true;
@@ -428,10 +434,12 @@ void usbHidGetReport(void)
 	// Ack Data Stage
 	usbAckIn(EP0);
 	usbWaitInTransactionComplete(EP0);
+	usbClearInTransaction(EP0);
 
 	// Ack Status Stage
 	usbAckOut(EP0);
 	usbWaitOutTransactionComplete(EP0);
+	usbClearOutTransaction(EP0);
 }
 
 //*****************************************************************************
@@ -442,6 +450,7 @@ void usbHidSetReport(void)
 	// Ack Data Stage
 	usbAckOut(EP0);
 	usbWaitOutTransactionComplete(EP0);
+	usbClearOutTransaction(EP0);
 		
 	// For EP0 Reports, the IN endpoint is used for both IN and OUT transactions.
 	printf("SetReport Rx=%02x %02x\n", controlPacket[0], controlPacket[1]);
@@ -453,4 +462,5 @@ void usbHidSetReport(void)
 	// Ack Status IN Stage
 	usbAckIn(EP0);
 	usbWaitInTransactionComplete(EP0);
+	usbClearInTransaction(EP0);
 }
