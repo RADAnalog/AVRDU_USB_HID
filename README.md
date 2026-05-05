@@ -1,3 +1,5 @@
+<img width="647" height="863" alt="image" src="https://github.com/user-attachments/assets/df815d88-afc7-4808-b8c4-9355c1ac3ea3" />
+
 A basic USB HID library for the Microchip AVRxxDU series of microcontrollers
 - including Control Endpoint functions for: GET/SET HID Reports and IN/OUT Interrupt Endpoints.
 - IN/OUT buffer is currently 2 bytes, but 8 bytes are possible with the Descriptor provided.
