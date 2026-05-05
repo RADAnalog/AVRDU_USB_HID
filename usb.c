@@ -3,20 +3,27 @@
 //
 //	Minimal HID implementation with Interrupt EP1.IN and EP1.OUT
 //
-//	Notes:
-//	The arrival of a setup packet automatically clears the TRNCOMPL flag.  Interrupt
-//	transfers have to clear the flag manually.
+// Multipacket mode is used for the control EP0 IN endpoint. After a USB RESET,
+// the first Get_Descriptor request is special: the host expects only the first
+// 8 bytes of the 18?byte Device Descriptor. If EP0 IN has a BUFSIZE smaller
+// than the full descriptor (e.g., 8 or 16 bytes), the buffer will contain extra
+// bytes the host did not request. This prevents TRNCOMPL from ever asserting,
+// causing the endpoint busy_wait loop to stick. The workaround is to use a BUFSIZE
+// larger than the Device Descriptor length (i.e., =32 or = 64).
 //
-//	Control packet: 21 0a 0000 0000 0000 = "SET_IDLE" is not implemented.
+//	If using the Control Endpoint for data transfer (HidGet/Set Report), the
+//	the EP0.IN is used for *both* IN and OUT transactions.
 //
-//	Pin7 - Configured LED
-//	Pin6 - Suspended LED
+//	Note: Control packet: 21 0a 0000 0000 0000 = "SET_IDLE" is not implemented (Stalled)
+//
+//	Pin7 - Configured LED - On when device is configured and ready
+//	Pin6 - Suspended LED - On when Host signals suspend mode
 //
 //	Author: Richard
 //	Date:	2026-04-13
 //
 //*****************************************************************************
-#include "config.h"			// F_CPU
+#include "config.h"				// F_CPU
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
@@ -38,7 +45,7 @@ uint8_t controlPacket[64];		// EP0.IN/OUT Control packet
 uint8_t ep1InPacket[8];			// EP1.IN packet
 uint8_t ep1OutPacket[8];		// EP1.OUT packet
 
-// USB state
+// USB peripheral configured and ready flag
 volatile bool usbStateConfigured = false;
 
 
@@ -52,7 +59,7 @@ void usbInit(void)
 	// Enable internal 3.3 V regulator
 	SYSCFG.VUSBCTRL = SYSCFG_USBVREG_bm;
 	
-	// Set the maximum endpoint address used and enable the USB peripheral
+	// Set the maximum endpoint number used, and enable USB peripheral
 	USB0.CTRLA = USB_ENABLE_bm | EP_MAX_ADDR;
 
 	// Wait for PLL to lock
@@ -66,7 +73,7 @@ void usbInit(void)
 	// Initialize EP0.OUT (Setup) Host -> Device
 	endpointTable.EP[EP0].OUT.STATUS	=	0;
 	endpointTable.EP[EP0].OUT.CTRL		=	USB_TYPE_CONTROL_gc |	
-											USB_TCDSBL_bm |					// Disable global interrupt
+											USB_TCDSBL_bm |					// Disable global interrupt sync
 											USB_BUFSIZE_DEFAULT_BUF8_gc;	// Setup packet is always 8 bytes
 	endpointTable.EP[EP0].OUT.DATAPTR	=	(uint16_t)&setupPacket;			// Setup packet buffer
 	endpointTable.EP[EP0].OUT.CNT		=	0;
@@ -75,7 +82,7 @@ void usbInit(void)
 	// Initialize Control EP0.IN Device -> Host/Host -> Device
 	endpointTable.EP[EP0].IN.STATUS		=	0;
 	endpointTable.EP[EP0].IN.CTRL		=	USB_TYPE_CONTROL_gc |
-											USB_TCDSBL_bm |					// Disable global interrupt
+											USB_TCDSBL_bm |					// Disable global interrupt sync
 											USB_MULTIPKT_bm | USB_AZLP_bm |	// Multipacket and Automatic ZLP
 											USB_BUFSIZE_DEFAULT_BUF64_gc;	// Buffer size must match DeviceDescriptor.MaxPacketSize0
 	endpointTable.EP[EP0].IN.DATAPTR	=	(uint16_t)controlPacket;		// Control IN/OUT buffer (Datasheet 27.3.2.2 SETUP)
@@ -199,23 +206,20 @@ ISR(USB0_TRNCOMPL_vect)
 	{
 		USB0.INTFLAGSB = USB_TRNCOMPL_bm;
 		
-		// Send packet to host
+		// Send packet to host on HidReport.bInterval frequency
 		if (endpointTable.EP[EP1].IN.STATUS & USB_TRNCOMPL_bm) 
 		{	
 			usbClearInTransaction(EP1);
 		
-			ep1InPacket[0]++;
-			ep1InPacket[1]++;
+			// Load packet with data to be sent to host on next EP1.IN request
+			//ep1InPacket[0]++;
+			//ep1InPacket[1]++;
 			
+			// Set buffer length
 			endpointTable.EP[EP1].IN.CNT = 2;
 			
 			// Print what is being sent
 			//printf("EP1.IN=%02x, %02x\n", ep1InPacket[0], ep1InPacket[1]);
-			
-			//if (ep1InPacket[0] == 255)
-			//{
-				//printf("EP1.IN=%i\n", ep1InPacket[0]);
-			//}
 			
 			// Ack IN transfer
 			usbAckIn(EP1);
@@ -223,11 +227,12 @@ ISR(USB0_TRNCOMPL_vect)
 			return;
 		}
 		
-		// Receive packet from host
+		// Receive packet from host on HidReport.bInterval frequency
 		if (endpointTable.EP[EP1].OUT.STATUS & USB_TRNCOMPL_bm)
 		{	
 			usbClearOutTransaction(EP1);
 			
+			// Data received from EP1.OUT transaction is available
 			printf("EP1.OUT=%02x, %02x\n", ep1OutPacket[0], ep1OutPacket[1]);		
 			
 			// Ack OUT transfer
@@ -423,9 +428,12 @@ void usbHidGetReport(void)
 {
 	// Data Stage 
 	
+	// Provide example data:
 	controlPacket[0] = 0x01;
 	controlPacket[1] = 0x02;
 	
+	// For EP0 Reports, the IN endpoint is used for both IN and OUT transactions.
+	// Print data to send to the Host over the Control Endpoint.
 	printf("GetReport Tx=%02x %02x\n", controlPacket[0], controlPacket[1]);
 
 	endpointTable.EP[EP0].IN.CNT = 2;
@@ -453,6 +461,7 @@ void usbHidSetReport(void)
 	usbClearOutTransaction(EP0);
 		
 	// For EP0 Reports, the IN endpoint is used for both IN and OUT transactions.
+	// Print data received form the Host over the Control Endpoint.
 	printf("SetReport Rx=%02x %02x\n", controlPacket[0], controlPacket[1]);
 
 	// Status Stage: reply with a ZLP
