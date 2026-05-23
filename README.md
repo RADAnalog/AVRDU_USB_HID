@@ -4,7 +4,7 @@ A basic USB HID library for the Microchip AVRxxDU series of microcontrollers
 - including Control Endpoint functions for: GET/SET HID Reports and IN/OUT Interrupt Endpoints.
 - IN/OUT buffer is currently 2 bytes, but 8 bytes are possible with the Descriptor provided.
 
-The prototype was developed on the AVR16DU14 version, using Microchip Studio 7 (see notes below) and the Cynthion USB tester (from Great Scott Gadgets).
+The prototype was developed on the AVR16DU14 version, using Microchip Studio 7 (see notes below) and the Cynthion USB packet analyzer (from Great Scott Gadgets).
 
 The purpose of developing this library was for me to learn how to use the AVRDU series USB peripheral.  Since Enumeration only occurs once after RESET and is very quick, to simplify things all enumeration logic occurs within the ISR.  Busy-wait loops are used for the IN and OUT Endpoint TRNCOMPL status checks. The USB state machine implementation is then easy to follow. 
 
