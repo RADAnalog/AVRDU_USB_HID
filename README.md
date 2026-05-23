@@ -6,7 +6,7 @@ A basic USB HID library for the Microchip AVRxxDU series of microcontrollers
 
 The prototype was developed on the AVR16DU14 version, using Microchip Studio 7 (see notes below) and the Cynthion USB packet analyzer (from Great Scott Gadgets).
 
-The purpose of developing this library was for me to learn how to use the AVRDU series USB peripheral.  Since Enumeration only occurs once after RESET and is very quick, to simplify things all enumeration logic occurs within the ISR.  Busy-wait loops are used for the IN and OUT Endpoint TRNCOMPL status checks. The USB state machine implementation is then easy to follow. 
+The purpose of developing this library was for me to learn how to use the AVRDU series USB peripheral.  To simplify the code since Enumeration only occurs once after RESET and is very fast, enumeration logic occurs within the SETUP ISR routine.  Busy-wait loops are used for the IN and OUT Endpoint TRNCOMPL status checks. The USB enumeration state transitions are then easy to follow. 
 
 To keep the project simple, I avoided developing my own device driver and chose to use the built-in HID drivers in Microsoft Windows.  By using the appropriate descriptor, Windows will automaticaly load the (HID) driver.  To communicate with the AVR once it is up-and-running, I used GenericHid.exe from http://janaxelson.com/ to execute Interrupt and Control Transfers. 
 
