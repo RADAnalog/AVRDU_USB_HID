@@ -10,7 +10,11 @@ The purpose of developing this library was for me to learn how to use the AVRDU 
 
 To keep the project simple, I avoided developing my own device driver and chose to use the built-in HID drivers in Microsoft Windows.  By using the appropriate descriptor, Windows will automaticaly load the (HID) driver.  To communicate with the AVR once it is up-and-running, I used GenericHid.exe from http://janaxelson.com/ to execute Interrupt and Control Transfers. 
 
-NOTE: When the Host performs the *FIRST* Get_Descriptor request for the 18 byte Device_Descriptor, the Host is only expecting the first 8 bytes of the Device_Descriptor (on a Windows machine).  Once the Host has received the first 8 bytes, the Host does not request further packets and the device should consider this transaction complete.  In multi-packet mode, with a BUFSIZE=8 or =16, an infinite busy-wait condition will occur in the function usbWaitInTransactionComplete(). The simple solution for me was to use a BUFSIZE > Device_Descriptor size (e.g., =32 or =64).
+NOTE: It is possible to use other descriptors for various device types such as keyboard, mouse or CDC (e.g., serial port).
+
+NOTE: When the Host performs the first Get_Descriptor request for the 18 byte Device_Descriptor, the Host is expecting just the first 8 bytes of the Device_Descriptor (on a Windows machine).  Once the Host has received the first 8 bytes, the Host does not request further packets and the device should consider this transaction complete.  There is no issue if the endpoint buffer size is greater than the descriptor length.  In multi-packet mode, with a BUFSIZE=8 or =16, an infinite busy-wait condition will occur in the function usbWaitInTransactionComplete() when the device descriptor is requested since the AVRDU device has no way of knowing that the host is not planning on requesting the remaining descriptor bytes.  The simple solution for me was to use a BUFSIZE > Device_Descriptor size (e.g., =32 or =64).
+
+I also test the INTFLAGSA.RESET flag and if set, exit the wait loop.  This works to avoid complete lockup because the host will timeout if the device does not ACK the status stage within the time prescribed in the USB protocol.  
 
 Notes on Microchip Studio 7 and Atmel ICE
 
