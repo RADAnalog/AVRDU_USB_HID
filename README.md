@@ -16,8 +16,15 @@ NOTE: When the Host performs the first Get_Descriptor request for the 18 byte De
 
 The STATUS check routines test the INTFLAGSA.RESET flag and if set, exit the wait loop.  This works to avoid complete lockup because the host will timeout if the device does not ACK the status stage within the time prescribed in the USB protocol.  
 
-Notes on Microchip Studio 7 and Atmel ICE
+Notes on Microchip Studio 7 and Atmel ICE - realizing that Microchip Studio 7 has been deprecated by Microchip!
 
 a) To use the newer devices with the ATMEL-ICE, the ICE firmware needs to be updated to Version 1.2e.  Microchip Studio 7 support ended some time (years) ago but I prefer using it over MPLABX.  However, Studio no longer keeps the firmware packs up to date through the Device Pack Manager.  I found I had to install MPLABX from Microchip, create an empty main.c and load the program to force MPLABX to update the firmware (there might be a way to manually load the firmware pack directly into Studio 7).
 
-b) Update 2026-10-26: I found a very annoying feature of Microchip Studio is that it continually inspects HID devices.  Initially, I couldn't find the reason, but I *think* it is because I tried both the Microchip and Atmel VIDs.  I suspect there is something in the BACKEND routine in Studio that is looking for Microchip/Atmel experiment boards.  I have switched to the Open Source VID (0x1209) and haven't noticed any issues but I haven't thoroughly checked this out.
+b) Update 2026-10-26: I found an annoying feature (to me at least) of Microchip Studio in that Studio continually inspects String Descriptors for HID devices long after enumeration has completed.  You will see a pattern like this repeated (it eventually stops) if you have the USART enabled to print the Setup Packet:
+80 06 0303 0409 0402
+80 06 0301 0409 0402
+80 06 0302 0409 0402
+80 06 0303 0409 0402
+80 06 0301 0409 0402
+80 06 0302 0409 0402
+You can disable this from happening while Studio is running if you set the String indices to 0 in the Descriptor.
